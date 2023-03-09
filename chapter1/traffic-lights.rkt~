@@ -26,4 +26,4 @@
 (define (main ws)
   (big-bang ws
     [to-draw render]
-    [on-tick tock 1]))
+    [on-tick tock]))
