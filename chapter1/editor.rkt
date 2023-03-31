@@ -1,5 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
+#lang htdp/bsl
 #reader(lib "htdp-beginner-reader.ss" "lang")((modname editor) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 (require 2htdp/image)
 (require 2htdp/universe)
@@ -105,9 +106,9 @@
      (make-editor
       (string-append (editor-pre editor) (string-get-first (editor-post editor)))
       (string-remove-first (editor-post editor)))]
-    [else editor]
-    )
-  )
+    [else editor]))
+    
+  
 
 (define (run editor)
   (big-bang editor

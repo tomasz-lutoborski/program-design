@@ -1,0 +1,63 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-intermediate-reader.ss" "lang")((modname abstract-functions) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+; Lon -> Lon
+; adds 1 to each item on l
+(check-expect (add1* (list 1 2 3)) (list 2 3 4))
+
+(define (add1* l)
+  (plusn 1 l))
+
+
+; Lon -> Lon
+; adds 5 to each item on l
+(check-expect (plus5 (list 1 2 3)) (list 6 7 8))
+
+(define (plus5 l)
+  (plusn 5 l))
+
+
+; Lon Number -> Lon
+; adds n to each item on l
+(check-expect (plusn 2 (list 1 2 3)) (list 3 4 5))
+
+(define (plusn n l)
+  (cond
+    [(empty? l) '()]
+    [else
+     (cons
+       (+ (first l) n)
+       (plusn n (rest l)))]))
+
+
+; Nelon -> Number
+; finds biggest or smallest number on
+; non-empty list of numbers
+(define (minmax R l)
+  (cond
+    [(empty? (rest l))
+      (first l)]
+     [else
+      (if (R (first l)
+             (minmax R (rest l)))
+          (first l)
+          (minmax R (rest l)))]))
+
+
+; Nelon -> Number
+; finds biggest number on the list
+(check-expect (biggest (list 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1)) 25)
+
+(define (biggest l)
+  (minmax > l))
+
+    
+
+
+
+
+
+
+
+
+
