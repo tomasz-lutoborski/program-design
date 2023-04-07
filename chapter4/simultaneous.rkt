@@ -412,6 +412,18 @@
   (make-db presence-schema
            presence-content))
 
+(define projected-content
+  `(("Alice" #true)
+    ("Bob"   #false)
+    ("Carol" #true)
+    ("Dave"  #false)))
+
+(define projected-schema
+  `(("Name" ,string?) ("Present" ,boolean?)))
+
+(define projected-db
+  (make-db projected-schema projected-content))
+
 
 ; DB -> Boolean
 ; do all rows in db satisfy (I1) and (I2)
@@ -453,3 +465,26 @@
     [(or (empty? l1) (empty? l2)) #true]
     [(predicate (first l1) (first l2)) (andmap2 predicate (rest l1) (rest l2))]
     [else #false]))
+
+
+; DB [List-of Label] -> DB
+; retains a column from db if its label is in labels
+(define (project db labels)
+  (local ((define schema  (db-schema db))
+          (define content (db-content db))
+
+          ; Spec -> Boolean
+          ; does this column belong to the new schema
+          (define (keep? c)
+            (member? (first c) labels))
+
+          ; Row -> Row
+          ; retains those columns whose name is in labels
+          (define (row-project row)
+            (foldr (lambda (cell m c) (if m (cons cell c) c))
+                   '()
+                   row
+                   mask))
+          (define mask (map keep? schema)))
+    (make-db (filter keep? schema)
+             (map row-project content))))
