@@ -209,3 +209,203 @@
               [(= S 0) L]
               [else (clever-gcd S (remainder L S))])))
     (clever-gcd (max m n) (min m n))))
+
+
+(define SMALL 4) ; a size measure in terms of pixels
+(define small-triangle (triangle SMALL 'outline 'red))
+
+; Number -> Image
+; generative creates Sierpinski Δ of size side by generating
+; one for (/ side 2) and placing one copy above two copies
+(check-expect (sierpinski SMALL) small-triangle)
+(check-expect (sierpinski (* 2 SMALL))
+              (above small-triangle
+                     (beside small-triangle small-triangle)))
+
+(define (sierpinski side)
+  (cond
+    [(<= side SMALL) (triangle side 'outline 'red)]
+    [else
+     (local ((define half-sized (sierpinski (/ side 2))))
+       (above half-sized (beside half-sized half-sized)))]))
+
+
+(define ε 0.001)
+; [Number -> Number] Number Number -> Number
+; determines R such that f has a root in [R,(+ R ε)]
+; assume f is continuous
+; (2) (or (<= (f left) 0 (f right)) (<= (f right) 0 (f left)))
+; generative divides interval in half, the root is in
+; one of the two halves, picks according to (2)
+(check-within (find-root poly 1 3) 2 0.001)
+(check-within (find-root poly 3 5) 4 0.001)
+(check-satisfied (find-root poly 3 5) (lambda (n) (zero? (poly (round n)))))
+
+(define (find-root f left right)
+  (cond
+    [(<= (- right left) ε) left]
+    [else
+      (local ((define mid (/ (+ left right) 2))
+              (define f@mid (f mid)))
+        (cond
+          [(or (<= (f left) 0 f@mid) (<= f@mid 0 (f left)))
+           (find-root f left mid)]
+          [(or (<= f@mid 0 (f right)) (<= (f right) 0 f@mid))
+           (find-root f mid right)]))]))
+
+
+; Number -> Number
+(define (poly x)
+  (* (- x 2) (- x 4)))
+
+
+(define-struct table [length array])
+; A Table is a structure:
+;   (make-table N [N -> Number])
+
+(define table1 (make-table 3 (lambda (i) i)))
+
+; N -> Number
+(define (a2 i)
+  (if (= i 0)
+      pi
+      (error "table2 is not defined for i =!= 0")))
+
+
+(define table2 (make-table 1 a2))
+
+(define table3 (make-table 10 (lambda (i) (- i 4))))
+
+(define table4 (make-table 2 (lambda (i) (- i 4))))
+
+
+; Table N -> Number
+; looks up the ith value in array of t
+(define (table-ref t i)
+  ((table-array t) i))
+
+(define ERR-T2 "table2 is not defined for i =!= 0")
+
+(define ERR-EMPTY "Empty table")
+
+(define ERR-LIMIT "Length limit is reached")
+
+(define ERR-NOT-FOUND "Root index is not found")
+
+;; Table -> N
+;; Finds the smallest index of a root
+;; of the given monotonically increasing table.
+(check-expect (find-linear table1) 0)
+(check-error (find-linear table2) ERR-LIMIT)
+(check-expect (find-linear table3) 4)
+(check-error (find-linear table4) ERR-LIMIT)
+(define (find-linear t)
+  (local ((define len (table-length t))
+          (define (find-linear* n)
+            (cond
+              [(= n len) (error ERR-LIMIT)]
+              [else
+               (if (zero? (table-ref t n))
+                   n
+                   (find-linear* (add1 n)))])))
+    (find-linear* 0)))
+
+;; Table -> N
+;; Finds the smallest index of a root
+;; of the given monotonically increasing table.
+(check-error (find-binary (make-table 0 (lambda (i) i))) ERR-EMPTY)
+(check-expect (find-binary (make-table 1 (lambda (i) i))) 0)
+(check-expect (find-binary (make-table 2 (lambda (i) (- i 1)))) 1)
+(check-expect (find-binary table1) 0)
+(check-error (find-binary table2) ERR-NOT-FOUND)
+(check-expect (find-binary table3) 4)
+(check-error (find-binary table4) ERR-NOT-FOUND)
+(define (find-binary t)
+  (local ((define len (table-length t))
+          (define (find-binary* l r)
+            (local ((define (value-at n)
+                      (table-ref t n))
+                    (define f@l (value-at l))
+                    (define f@r (value-at r))
+                    (define distance (- r l)))
+              (cond
+                [(<= distance 1) (cond
+                                   [(= f@l 0) l]
+                                   [(= f@r 0) r]
+                                   [else (error ERR-NOT-FOUND)])]
+                [else
+                 (local ((define mid (ceiling (/ (+ l r) 2)))
+                         (define f@m (value-at mid)))
+                   (cond
+                     [(= f@m 0) mid]
+                     [(> f@m 0) (find-binary* l mid)]
+                     [else (find-binary* mid r)]))]))))
+    (if (= 0 len)
+        (error ERR-EMPTY)
+        (find-binary* 0 (sub1 len)))))
+
+
+; A File is one of:
+; – '()
+; – (cons "\n" File)
+; – (cons 1String File)
+; interpretation represents the content of a file
+; "\n" is the newline character
+
+; A Line is a [List-of 1String].
+
+
+; File -> [List-of Line]
+; converts a file into a list of lines
+(check-expect (file->list-of-lines
+                (list "a" "b" "c" "\n"
+                      "d" "e" "\n"
+                      "f" "g" "h" "\n"))
+              (list (list "a" "b" "c")
+                    (list "d" "e")
+                    (list "f" "g" "h")))
+
+(define (file->list-of-lines afile)
+  (cond
+    [(empty? afile) '()]
+    [else
+     (cons (first-line afile)
+           (file->list-of-lines (remove-first-line afile)))]))
+
+
+; File -> Line
+; retrieves the prefix of afile up to the first occurrence of NEWLINE
+(define (first-line afile)
+  (cond
+    [(empty? afile) '()]
+    [(string=? (first afile) NEWLINE) '()]
+    [else (cons (first afile) (first-line (rest afile)))]))
+
+
+; File -> File
+; drops the suffix of afile behind the first occurrence of NEWLINE
+(define (remove-first-line afile)
+  (cond
+    [(empty? afile) '()]
+    [(string=? (first afile) NEWLINE) (rest afile)]
+    [else (remove-first-line (rest afile))]))
+
+(define NEWLINE "\n") ; the 1String
+
+(check-expect
+  (create-matrix 2 (list 1 2 3 4))
+  (list (list 1 2)
+        (list 3 4)))
+(check-expect
+ (create-matrix 3 (list 1 2 3 4 5 6 7 8 9 10 11 12))
+ (list (list 1 2 3)
+       (list 4 5 6)
+       (list 7 8 9)
+       (list 10 11 12)))
+
+(define (create-matrix n lst)
+  (cond
+    [(empty? lst) '()]
+    [else
+     (cons (take lst n)
+           (create-matrix n (drop lst n)))]))
